@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MergeUp ROI Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --mu-red:       #C8102E;
+    --mu-crimson:   #900318;
+    --mu-dark-gray: #656969;
+    --mu-mid-gray:  #9D9F9F;
+    --mu-pale-red:  #fdf0f2;
+    --mu-red-border:#e8b0b8;
+    --white:        #ffffff;
+    --gray-900:     #1a1a1a;
+    --gray-300:     #dcdcdc;
+    --gray-200:     #e8e8e8;
+    --gray-50:      #fafafa;
+    --amber-pale:   #fffbeb;
+    --amber-border: #fcd34d;
+    --green-pale:   #f0fdf4;
+    --green-border: #bbf7d0;
+    --green-text:   #166534;
+    --blue:         #3B64B4;
+    --blue-light:   rgba(59,100,180,0.45);
+    --radius:       12px;
+    --shadow:       0 1px 3px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.05);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-900);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+  .container { max-width: 760px; margin: 0 auto; }
+ 
+  /* Banner */
+ 
+  /* Mode tabs */
+  .mode-tabs {
+    display: flex; margin-bottom: 18px;
+    background: var(--white); border: 1px solid var(--gray-300);
+    border-radius: var(--radius); padding: 5px; box-shadow: var(--shadow);
+  }
+  .mode-tab {
+    flex: 1; padding: 10px 16px; border: none; background: transparent;
+    font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--mu-dark-gray); border-radius: 8px; cursor: pointer;
+    transition: all 0.15s; text-align: center; letter-spacing: .02em;
+  }
+  .mode-tab.active { background: var(--mu-crimson); color: var(--white); box-shadow: 0 1px 4px rgba(144,3,24,0.3); }
+  .mode-tab:not(.active):hover { background: var(--mu-pale-red); color: var(--mu-crimson); }
+ 
+  /* Section label */
+  .section-label {
+    font-size: 9px; font-weight: 800; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--mu-dark-gray); margin-bottom: 12px;
+  }
+ 
+  /* Card */
+  .card {
+    background: var(--white); border: 1px solid var(--gray-300);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+ 
+  /* Input grid */
+  .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media(max-width: 560px) { .input-grid { grid-template-columns: 1fr; } }
+ 
+  /* Sliders */
+  .slider-row { margin-bottom: 18px; }
+  .slider-row:last-child { margin-bottom: 0; }
+  .slider-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .slider-label { font-size: 11.5px; font-weight: 500; color: var(--mu-dark-gray); line-height: 1.3; padding-right: 8px; }
+  .slider-value { font-size: 12px; font-weight: 800; color: var(--mu-red); white-space: nowrap; flex-shrink: 0; }
+  input[type=range] {
+    -webkit-appearance: none; width: 100%; height: 3px;
+    border-radius: 2px; background: var(--gray-300); outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--mu-red); border: 2.5px solid white;
+    box-shadow: 0 1px 4px rgba(200,16,46,0.3); cursor: pointer;
+  }
+ 
+  /* Select wrap */
+  .select-wrap { position: relative; }
+  .select-wrap select {
+    width: 100%; padding: 10px 32px 10px 12px;
+    font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 600;
+    color: var(--gray-900); background: var(--gray-50);
+    border: 1.5px solid var(--gray-300); border-radius: 8px;
+    appearance: none; cursor: pointer; outline: none;
+  }
+  .select-wrap select:focus { border-color: var(--mu-red); }
+  .select-wrap::after {
+    content: ''; position: absolute; right: 12px; top: 50%;
+    transform: translateY(-50%); border-left: 4px solid transparent;
+    border-right: 4px solid transparent; border-top: 5px solid var(--mu-dark-gray);
+    pointer-events: none;
+  }
+ 
+  /* Tier buttons */
+  .tier-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .tier-btn {
+    padding: 9px 6px; border: 1.5px solid var(--gray-300); border-radius: 8px;
+    background: var(--white); font-family: 'Montserrat', sans-serif;
+    cursor: pointer; text-align: center; transition: all 0.15s;
+    display: flex; flex-direction: column; gap: 2px; align-items: center;
+  }
+  .tier-btn span.tier-users { font-size: 10px; font-weight: 800; color: var(--mu-dark-gray); }
+  .tier-btn span.tier-price { font-size: 10px; font-weight: 600; color: var(--mu-mid-gray); }
+  .tier-btn.active { border-color: var(--mu-red); background: var(--mu-pale-red); }
+  .tier-btn.active span.tier-users { color: var(--mu-crimson); }
+  .tier-btn.active span.tier-price { color: var(--mu-red); }
+  .tier-btn:not(.active):hover { border-color: var(--mu-red); background: #fff5f6; }
+ 
+  /* Contract inputs */
+  .contract-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media(max-width: 560px) { .contract-grid { grid-template-columns: 1fr; } }
+ 
+  .input-group label {
+    display: block; font-size: 9px; font-weight: 800; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--mu-dark-gray); margin-bottom: 7px;
+  }
+  .input-currency { position: relative; }
+  .input-currency span {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    font-size: 13px; font-weight: 700; color: var(--mu-mid-gray); pointer-events: none;
+  }
+  .input-currency input[type=number] {
+    width: 100%; padding: 10px 12px 10px 24px;
+    font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 800;
+    color: var(--gray-900); background: var(--gray-50);
+    border: 1.5px solid var(--gray-300); border-radius: 8px; outline: none;
+  }
+  .input-currency input:focus { border-color: var(--mu-red); }
+  .input-currency.mergeup-input input { color: var(--mu-crimson); border-color: #e0b0b8; background: #fff8f8; }
+  .input-currency.mergeup-input input:focus { border-color: var(--mu-red); }
+  .input-currency.mergeup-input span { color: var(--mu-red); }
+  .input-note { font-size: 10px; color: var(--mu-mid-gray); margin-top: 5px; font-weight: 500; line-height: 1.4; }
+ 
+  /* Divider */
+  .divider-label {
+    font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--mu-mid-gray); text-align: center; margin: 4px 0 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .divider-label::before, .divider-label::after { content: ''; flex: 1; height: 1px; background: var(--gray-200); }
+ 
+  /* Metrics */
+  .metrics-grid { display: grid; gap: 10px; margin-bottom: 14px; }
+  .metrics-3 { grid-template-columns: repeat(3, 1fr); }
+  .metrics-4 { grid-template-columns: repeat(4, 1fr); }
+  @media(max-width: 560px) { .metrics-3, .metrics-4 { grid-template-columns: 1fr 1fr; } }
+ 
+  .metric-box { background: var(--gray-50); border: 1px solid var(--gray-300); border-radius: 10px; padding: 13px 14px; }
+  .metric-box.highlight { background: var(--mu-crimson); border-color: var(--mu-crimson); grid-column: 1 / -1; }
+  .metric-box.span2 { grid-column: span 2; }
+  .metric-box.span3 { grid-column: span 3; }
+  .metric-label { font-size: 8.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--mu-mid-gray); margin-bottom: 4px; }
+  .metric-box.highlight .metric-label { color: rgba(255,255,255,0.65); }
+  .metric-value { font-size: 22px; font-weight: 800; color: var(--mu-red); line-height: 1.1; }
+  .metric-value.negative { color: #b91c1c; }
+  .metric-box.highlight .metric-value { color: var(--white); font-size: 26px; }
+  .metric-sub { font-size: 10px; color: var(--mu-mid-gray); margin-top: 2px; font-weight: 500; }
+  .metric-box.highlight .metric-sub { color: rgba(255,255,255,0.55); }
+ 
+  /* Notes */
+  .labor-note {
+    display: flex; gap: 8px; align-items: flex-start;
+    background: var(--green-pale); border: 1px solid var(--green-border);
+    border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;
+    font-size: 11px; color: var(--green-text); line-height: 1.55; font-weight: 500;
+  }
+  .labor-note svg { flex-shrink: 0; margin-top: 1px; }
+  .disclaimer-note {
+    display: flex; gap: 8px; align-items: flex-start;
+    background: var(--amber-pale); border: 1px solid var(--amber-border);
+    border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;
+    font-size: 11px; color: #78350f; line-height: 1.55; font-weight: 500;
+  }
+  .disclaimer-note svg { flex-shrink: 0; margin-top: 1px; }
+ 
+  /* Comparison bullets */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  @media(max-width: 480px) { .compare-grid { grid-template-columns: 1fr; } }
+  .comp-card { border-radius: 10px; padding: 14px 16px; }
+  .comp-card h4 { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+  .comp-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .comp-card ul li { display: flex; gap: 7px; align-items: flex-start; line-height: 1.45; font-size: 11.5px; font-weight: 500; }
+  .comp-card ul li::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .bad-card { background: var(--mu-pale-red); border: 1px solid var(--mu-red-border); }
+  .bad-card h4 { color: var(--mu-crimson); }
+  .bad-card ul li { color: #6b0f1d; }
+  .bad-card ul li::before { background: var(--mu-red); }
+  .good-card { background: #fff8f8; border: 1px solid #f0d0d5; }
+  .good-card h4 { color: var(--mu-crimson); }
+  .good-card ul li { color: var(--mu-dark-gray); }
+  .good-card ul li::before { background: var(--mu-crimson); }
+ 
+  /* Chart */
+  .chart-wrap { position: relative; height: 240px; margin-top: 14px; }
+ 
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="container">
+ 
+  <div class="mode-tabs">
+    <button class="mode-tab active" onclick="setMode('manual')">Manual Process</button>
+    <button class="mode-tab" onclick="setMode('competitor')">Competitor Comparison</button>
+  </div>
+ 
+  <!-- ═══════════════════════════════════════
+       MANUAL MODE
+  ═══════════════════════════════════════ -->
+  <div id="manual-mode">
+    <div class="input-grid">
+      <div class="card">
+        <div class="section-label">Your Salesforce Org</div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-label">Active internal Salesforce users</span>
+            <span class="slider-value" id="m-val-users">150</span>
+          </div>
+          <input type="range" id="m-sl-users" min="10" max="1000" value="150" step="5" oninput="syncSlider('m','users'); recalcManual()">
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-label">Time Cost of Manual Work</div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-label">Users who create documents</span>
+            <span class="slider-value" id="m-val-docusers">10</span>
+          </div>
+          <input type="range" id="m-sl-docusers" min="1" max="200" value="10" step="1" oninput="syncSlider('m','docusers'); recalcManual()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-label">Hours/week per person on docs</span>
+            <span class="slider-value" id="m-val-hours">4 hrs</span>
+          </div>
+          <input type="range" id="m-sl-hours" min="1" max="20" value="4" step="0.5" oninput="syncSlider('m','hours'); recalcManual()">
+        </div>
+      </div>
+    </div>
+ 
+    <div class="card">
+      <div class="section-label">Your Results</div>
+      <div class="metrics-grid metrics-3">
+        <div class="metric-box">
+          <div class="metric-label">MergeUp Year 1 Cost</div>
+          <div class="metric-value" id="m-mergeup-cost">—</div>
+          <div class="metric-sub">flat rate, no per-user fees</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Labor Savings Yr 1</div>
+          <div class="metric-value" id="m-labor">—</div>
+          <div class="metric-sub">from time reclaimed</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">First-Year ROI</div>
+          <div class="metric-value" id="m-roi">—</div>
+          <div class="metric-sub">return on investment</div>
+        </div>
+        <div class="metric-box highlight">
+          <div class="metric-label">Total Year 1 Net Value</div>
+          <div class="metric-value" id="m-net">—</div>
+          <div class="metric-sub" id="m-net-sub">labor savings minus MergeUp cost</div>
+        </div>
+        <div class="metric-box span2">
+          <div class="metric-label">3-Year Net Labor Savings</div>
+          <div class="metric-value" id="m-3yr">—</div>
+          <div class="metric-sub">after all MergeUp costs (3 yrs)</div>
+        </div>
+      </div>
+      <div class="labor-note">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#16a34a" stroke-width="1.5" fill="none"/><path d="M5 8.5l2 2 4-4" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Manual process: 100% of time spent on documents is reclaimed. Hardcoded: $55/hr fully loaded rate, 48 productive work weeks/year.</span>
+      </div>
+    </div>
+ 
+    <div class="card">
+      <div class="section-label">3-Year Labor Savings vs MergeUp Cost</div>
+      <div class="chart-wrap"><canvas id="manual-chart"></canvas></div>
+    </div>
+  </div>
+ 
+  <!-- ═══════════════════════════════════════
+       COMPETITOR MODE
+  ═══════════════════════════════════════ -->
+  <div id="competitor-mode" class="hidden">
+ 
+    <div class="card">
+      <div class="section-label">Select Competitor</div>
+      <div class="select-wrap" style="margin-bottom:16px;">
+        <select id="c-comp-select" onchange="onCompChange()">
+          <option value="conga">Conga Composer</option>
+          <option value="nintex">Nintex DocGen</option>
+          <option value="sdocs">SDocs</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+ 
+      <!-- Tier buttons (hidden for "Other") -->
+      <div id="tier-section">
+        <div class="divider-label">Select a pricing tier or enter contract value below</div>
+        <div class="section-label">Preset Pricing Tiers</div>
+        <div class="tier-row" id="tier-row"></div>
+      </div>
+ 
+      <div class="section-label">Contract Values</div>
+      <div class="contract-grid">
+        <div class="input-group">
+          <label id="comp-cost-label">Competitor Annual Contract</label>
+          <div class="input-currency">
+            <span>$</span>
+            <input type="number" id="c-comp-cost" min="0" step="100" value="5000" oninput="onManualInput()">
+          </div>
+          <div class="input-note" id="comp-cost-note">Base AppExchange price — does not include overages</div>
+        </div>
+        <div class="input-group">
+          <label>MergeUp Annual Contract</label>
+          <div class="input-currency mergeup-input">
+            <span>$</span>
+            <input type="number" id="c-mu-cost" min="0" step="100" value="5000" oninput="recalcComp()">
+          </div>
+          <div class="input-note">Pre-filled to closest tier — edit if quoting a custom price</div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- Labor inputs -->
+    <div class="input-grid">
+      <div class="card">
+        <div class="section-label">Template Management Work</div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-label">Users who manage templates</span>
+            <span class="slider-value" id="c-val-docusers">1</span>
+          </div>
+          <input type="range" id="c-sl-docusers" min="1" max="50" value="1" step="1" oninput="syncSlider('c','docusers'); recalcComp()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-label">Hours/week on template &amp; admin work</span>
+            <span class="slider-value" id="c-val-hours">10 hrs</span>
+          </div>
+          <input type="range" id="c-sl-hours" min="1" max="40" value="10" step="0.5" oninput="syncSlider('c','hours'); recalcComp()">
+        </div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;justify-content:center;">
+        <div class="section-label">Labor Savings Assumption</div>
+        <div style="font-size:30px;font-weight:800;color:var(--mu-red);margin-bottom:4px;" id="c-savings-pct">45%</div>
+        <div style="font-size:11px;color:var(--mu-dark-gray);font-weight:500;line-height:1.6;" id="c-savings-desc">
+          Time reduction on template &amp; admin work switching from Conga Composer.<br>
+          Hardcoded: $55/hr, 48 work weeks/yr.
+        </div>
+      </div>
+    </div>
+ 
+    <!-- Results -->
+    <div class="card">
+      <div class="section-label">Your Results</div>
+      <div class="metrics-grid metrics-4">
+        <div class="metric-box">
+          <div class="metric-label">MergeUp Year 1</div>
+          <div class="metric-value" id="c-mu-display">—</div>
+          <div class="metric-sub">flat rate</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">License Savings</div>
+          <div class="metric-value" id="c-lic-sav">—</div>
+          <div class="metric-sub" id="c-lic-sub">vs competitor yr 1</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Labor Savings Yr 1</div>
+          <div class="metric-value" id="c-labor">—</div>
+          <div class="metric-sub">from time reclaimed</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">First-Year ROI</div>
+          <div class="metric-value" id="c-roi">—</div>
+          <div class="metric-sub">return on investment</div>
+        </div>
+        <div class="metric-box highlight">
+          <div class="metric-label">Total Year 1 Value</div>
+          <div class="metric-value" id="c-total">—</div>
+          <div class="metric-sub" id="c-total-sub">net after MergeUp cost</div>
+        </div>
+        <div class="metric-box span3">
+          <div class="metric-label">3-Year Net Savings</div>
+          <div class="metric-value" id="c-3yr">—</div>
+          <div class="metric-sub">license + labor savings vs competitor, after all MergeUp costs</div>
+        </div>
+      </div>
+      <div class="labor-note">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#16a34a" stroke-width="1.5" fill="none"/><path d="M5 8.5l2 2 4-4" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="c-labor-note">Labor savings reflect time reduction on template and admin work only, not all Salesforce users.</span>
+      </div>
+      <div class="disclaimer-note" id="c-disclaimer-wrap">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#b45309" stroke-width="1.5" fill="none"/><rect x="7.25" y="4" width="1.5" height="5" rx=".75" fill="#b45309"/><rect x="7.25" y="10.5" width="1.5" height="1.5" rx=".75" fill="#b45309"/></svg>
+        <span id="c-disclaimer">Competitor pricing shown is the base AppExchange rate and does not include transaction overages, execution charges, or add-on fees.</span>
+      </div>
+    </div>
+ 
+    <!-- Comparison bullets -->
+    <div class="compare-grid">
+      <div class="bad-card comp-card">
+        <h4 id="c-comp-header">
+          <svg width="10" height="10" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" stroke="#900318" stroke-width="1.5" fill="none"/><path d="M4 4l4 4M8 4l-4 4" stroke="#900318" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Conga Composer
+        </h4>
+        <ul id="c-comp-bullets"></ul>
+      </div>
+      <div class="good-card comp-card">
+        <h4>
+          <svg width="10" height="10" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" stroke="#900318" stroke-width="1.5" fill="none"/><path d="M3.5 6.5l2 2 3.5-3.5" stroke="#900318" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          MergeUp
+        </h4>
+        <ul id="c-mu-bullets"></ul>
+      </div>
+    </div>
+ 
+    <!-- Chart -->
+    <div class="card">
+      <div class="section-label">License Cost + Labor Savings — 3-Year View</div>
+      <div class="chart-wrap"><canvas id="comp-chart"></canvas></div>
+    </div>
+ 
+  </div>
+</div>
+ 
+<script>
+// ─── Constants ───────────────────────────────────────────────
+const HOURLY_RATE = 55;
+const WORK_WEEKS  = 48;
+ 
+const LABOR_SAVINGS = { conga: 0.45, nintex: 0.30, sdocs: 0.15, other: 0.30 };
+ 
+// Verified tiers from Upsource. Conga 50-user = $5,000 (minimum contract).
+const TIERS = {
+  conga:  [{ users: 50,   comp: 5000,   mu: 5000  },
+           { users: 400,  comp: 28800,  mu: 15000 },
+           { users: 1000, comp: 72000,  mu: 30000 }],
+  nintex: [{ users: 50,   comp: 5000,   mu: 5000  },
+           { users: 400,  comp: 20000,  mu: 15000 },
+           { users: 1000, comp: 50000,  mu: 30000 }],
+  sdocs:  [{ users: 50,   comp: 15000,  mu: 5000  },
+           { users: 400,  comp: 120000, mu: 15000 },
+           { users: 1000, comp: 300000, mu: 30000 }]
+  // "other" has no preset tiers
+};
+ 
+const COMP_META = {
+  conga: {
+    name: 'Conga Composer',
+    overageNote: 'Base AppExchange price — does not include transaction overages ($0.50–$1.20/doc)',
+    bullets: cc => [
+      `${cc}/yr — base AppExchange rate`,
+      '$5,000 minimum contract',
+      'Per-user pricing — cost grows with every hire',
+      'Transaction limits with per-document overage charges',
+      'Enterprise contracts typically exceed published list price'
+    ]},
+  nintex: {
+    name: 'Nintex DocGen',
+    overageNote: 'Base AppExchange price — does not include execution overages (~$0.43/doc gen)',
+    bullets: cc => [
+      `${cc}/yr — base AppExchange rate`,
+      'Execution-based: 2,000 doc generations included per plan',
+      'Overage: ~$0.43/document generation',
+      'Workflow automation runs: ~$0.60–$0.80 each',
+      'Enterprise packages frequently exceed the base tier'
+    ]},
+  sdocs: {
+    name: 'SDocs',
+    overageNote: 'Base AppExchange price — confirm exact contract with prospect',
+    bullets: cc => [
+      `${cc}/yr — base AppExchange rate`,
+      'Per-user pricing — cost scales significantly at enterprise headcount',
+      'No org-based flat rate available',
+      'Complex licensing can be difficult to audit',
+      'Confirm actual contract value with prospect on call'
+    ]},
+  other: {
+    name: 'Current Tool',
+    overageNote: 'Enter the prospect\'s actual contract value above',
+    bullets: cc => [
+      `${cc}/yr — contract value entered`,
+      'Per-user or usage-based pricing',
+      'Cost typically grows as headcount increases',
+      'May include overage or transaction charges',
+      'Confirm full contract scope with prospect'
+    ]}
+};
+ 
+// ─── Helpers ─────────────────────────────────────────────────
+function fmt(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  const abs = Math.abs(Math.round(n));
+  return (n < 0 ? '-$' : '$') + abs.toLocaleString();
+}
+function fmtShort(n) {
+  if (!n && n !== 0) return '$0';
+  const abs = Math.abs(n);
+  const prefix = n < 0 ? '-$' : '$';
+  return prefix + (abs >= 1000 ? (abs/1000).toFixed(0)+'k' : abs);
+}
+function syncSlider(pfx, key) {
+  const v = parseFloat(document.getElementById(pfx+'-sl-'+key).value);
+  const labels = { users: v, docusers: v, hours: v + ' hrs' };
+  document.getElementById(pfx+'-val-'+key).textContent = labels[key];
+}
+ 
+// ─── Mode toggle ─────────────────────────────────────────────
+function setMode(mode) {
+  document.getElementById('manual-mode').classList.toggle('hidden', mode !== 'manual');
+  document.getElementById('competitor-mode').classList.toggle('hidden', mode !== 'competitor');
+  document.querySelectorAll('.mode-tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && mode === 'manual') || (i === 1 && mode === 'competitor'));
+  });
+  if (mode === 'manual') recalcManual();
+  else recalcComp();
+}
+ 
+// ─── Manual mode ─────────────────────────────────────────────
+let manualChart = null;
+ 
+function mergeupTier(u) {
+  if (u <= 10) return 2500; if (u <= 50) return 5000;
+  if (u <= 100) return 7000; if (u <= 500) return 15000;
+  if (u <= 1000) return 30000; return 45000;
+}
+ 
+function recalcManual() {
+  const users  = parseInt(document.getElementById('m-sl-users').value);
+  const docU   = parseInt(document.getElementById('m-sl-docusers').value);
+  const hrs    = parseFloat(document.getElementById('m-sl-hours').value);
+ 
+  const mu = mergeupTier(users); // flat, no yearly increases
+ 
+  const laborYr = docU * hrs * WORK_WEEKS * 1.00 * HOURLY_RATE;
+  const net1    = laborYr - mu;
+  const roi     = mu > 0 ? Math.round((net1 / mu) * 100) : 0;
+  const net3    = (laborYr * 3) - (mu * 3);
+ 
+  document.getElementById('m-mergeup-cost').textContent = fmt(mu);
+  document.getElementById('m-labor').textContent        = fmt(laborYr);
+  document.getElementById('m-roi').textContent          = roi + '%';
+  document.getElementById('m-net').textContent          = fmt(net1);
+  document.getElementById('m-net-sub').textContent      = fmt(net1) + ' net after MergeUp yr 1 cost';
+  document.getElementById('m-3yr').textContent          = fmt(net3);
+ 
+  if (manualChart) manualChart.destroy();
+  manualChart = new Chart(document.getElementById('manual-chart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['Year 1', 'Year 2', 'Year 3'],
+      datasets: [
+        { label: 'Labor savings', data: [laborYr, laborYr, laborYr],
+          backgroundColor: 'rgba(200,16,46,0.75)', borderRadius: 5, borderSkipped: false, order: 2 },
+        { label: 'MergeUp cost', data: [mu, mu, mu],
+          type: 'line', borderColor: 'rgba(144,3,24,0.9)', backgroundColor: 'rgba(144,3,24,0.1)',
+          borderWidth: 2.5, pointRadius: 5, pointBackgroundColor: '#900318', fill: false, order: 1 }
+      ]
+    },
+    options: chartOpts()
+  });
+}
+ 
+// ─── Competitor mode ─────────────────────────────────────────
+let compChart    = null;
+let selTierIdx   = 0;
+ 
+function onCompChange() {
+  const comp = document.getElementById('c-comp-select').value;
+  selTierIdx = 0;
+  const hasPreset = comp !== 'other';
+ 
+  // Show/hide tier section
+  document.getElementById('tier-section').classList.toggle('hidden', !hasPreset);
+ 
+  // Update meta text
+  const meta = COMP_META[comp];
+  document.getElementById('comp-cost-label').textContent = meta.name + ' Annual Contract';
+  document.getElementById('comp-cost-note').textContent  = meta.overageNote;
+  document.getElementById('c-comp-header').innerHTML     =
+    `<svg width="10" height="10" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" stroke="#900318" stroke-width="1.5" fill="none"/><path d="M4 4l4 4M8 4l-4 4" stroke="#900318" stroke-width="1.5" stroke-linecap="round"/></svg> ${meta.name}`;
+ 
+  const saved = LABOR_SAVINGS[comp];
+  document.getElementById('c-savings-pct').textContent  = Math.round(saved * 100) + '%';
+  document.getElementById('c-savings-desc').innerHTML   =
+    `Time reduction on template &amp; admin work switching from ${meta.name}.<br>Hardcoded: $55/hr, 48 work weeks/yr.`;
+  document.getElementById('c-disclaimer').textContent   =
+    comp === 'other'
+      ? 'Enter the prospect\'s actual contract value to calculate ROI. Labor savings assume a 30% time reduction — adjust if you have better data.'
+      : `Competitor pricing shown is the base AppExchange rate and does not include transaction overages, execution charges, or add-on fees — which can significantly increase the actual cost of ${meta.name}.`;
+ 
+  if (hasPreset) {
+    renderTierButtons(comp);
+    applyTier(comp, 0);
+  } else {
+    document.getElementById('c-comp-cost').value = '';
+    document.getElementById('c-mu-cost').value   = '';
+    recalcComp();
+  }
+}
+ 
+function renderTierButtons(comp) {
+  const tiers = TIERS[comp];
+  document.getElementById('tier-row').innerHTML = tiers.map((t, i) =>
+    `<button class="tier-btn ${i === selTierIdx ? 'active' : ''}" onclick="selectTier(${i})">
+      <span class="tier-users">${t.users.toLocaleString()} users</span>
+      <span class="tier-price">${fmt(t.comp)}/yr</span>
+    </button>`
+  ).join('');
+}
+ 
+function selectTier(idx) {
+  const comp = document.getElementById('c-comp-select').value;
+  selTierIdx = idx;
+  renderTierButtons(comp);
+  applyTier(comp, idx);
+}
+ 
+function applyTier(comp, idx) {
+  const t = TIERS[comp][idx];
+  document.getElementById('c-comp-cost').value = t.comp;
+  document.getElementById('c-mu-cost').value   = t.mu;
+  recalcComp();
+}
+ 
+function onManualInput() {
+  selTierIdx = -1;
+  document.querySelectorAll('.tier-btn').forEach(b => b.classList.remove('active'));
+  recalcComp();
+}
+ 
+function recalcComp() {
+  const comp     = document.getElementById('c-comp-select').value;
+  const meta     = COMP_META[comp];
+  const compCost = parseFloat(document.getElementById('c-comp-cost').value) || 0;
+  const muCost   = parseFloat(document.getElementById('c-mu-cost').value)   || 0;
+  const docU     = parseInt(document.getElementById('c-sl-docusers').value);
+  const hrs      = parseFloat(document.getElementById('c-sl-hours').value);
+  const saved    = LABOR_SAVINGS[comp];
+ 
+  const laborYr = docU * hrs * WORK_WEEKS * saved * HOURLY_RATE;
+  const licSav  = compCost - muCost;
+  const total   = licSav + laborYr;
+  const net1    = total - muCost;
+  const roi     = muCost > 0 ? Math.round((net1 / muCost) * 100) : 0;
+ 
+  // MergeUp flat across 3 years (no increases)
+  const muFlat = muCost;
+  const net3   = ((compCost * 3) - (muFlat * 3)) + (laborYr * 3);
+ 
+  document.getElementById('c-mu-display').textContent  = fmt(muCost);
+  document.getElementById('c-lic-sav').textContent     = fmt(licSav);
+  document.getElementById('c-lic-sav').className       = 'metric-value' + (licSav < 0 ? ' negative' : '');
+  document.getElementById('c-lic-sub').textContent     = (licSav >= 0 ? 'saved vs ' : 'more than ') + meta.name + ' yr 1';
+  document.getElementById('c-labor').textContent       = fmt(laborYr);
+  document.getElementById('c-roi').textContent         = roi + '%';
+  document.getElementById('c-total').textContent       = fmt(total);
+  document.getElementById('c-total-sub').textContent   = fmt(net1) + ' net after MergeUp cost';
+  document.getElementById('c-3yr').textContent         = fmt(net3);
+ 
+  document.getElementById('c-labor-note').textContent =
+    'Labor savings reflect a ' + Math.round(saved * 100) + '% time reduction on template and admin work switching from ' +
+    meta.name + '. This applies to template managers only — not all Salesforce users. Hardcoded: $55/hr, 48 work weeks/yr.';
+ 
+  // Bullets — pass already-formatted compCost string
+  const cc = compCost > 0 ? fmt(compCost) : 'Contract value not entered';
+  document.getElementById('c-comp-bullets').innerHTML =
+    meta.bullets(cc).map(b => `<li>${b}</li>`).join('');
+  document.getElementById('c-mu-bullets').innerHTML = `
+    <li>${fmt(muCost)}/yr — flat org-based rate</li>
+    <li>No per-user fees — cost stays flat as you hire</li>
+    <li>No usage or transaction charges</li>
+    <li>Salesforce-native — no external integrations</li>
+    <li>Free implementation included</li>`;
+ 
+  // Stacked bar: license savings + labor savings stacked, vs competitor total cost
+  // Stack 1 (blue): competitor license cost
+  // Stack 2 (crimson): MergeUp license cost
+  // Stack 3 (green): labor savings
+  // Shows competitor cost (blue) vs MergeUp cost + labor savings side by side
+  // Cleaner approach: two grouped bars per year
+  //   Bar A (competitor): full competitor cost
+  //   Bar B (MergeUp): stacked [MergeUp cost | labor savings on top]
+  // This lets user visually see total MergeUp value vs competitor cost
+ 
+  if (compChart) compChart.destroy();
+  compChart = new Chart(document.getElementById('comp-chart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['Year 1', 'Year 2', 'Year 3'],
+      datasets: [
+        {
+          label: meta.name + ' cost',
+          data: [compCost, compCost, compCost],
+          backgroundColor: 'rgba(59,100,180,0.80)',
+          borderRadius: 3, borderSkipped: false,
+          stack: 'competitor'
+        },
+        {
+          label: 'MergeUp license cost',
+          data: [muFlat, muFlat, muFlat],
+          backgroundColor: 'rgba(144,3,24,0.85)',
+          borderRadius: 3, borderSkipped: 'bottom',
+          stack: 'mergeup'
+        },
+        {
+          label: 'Labor savings (MergeUp)',
+          data: [laborYr, laborYr, laborYr],
+          backgroundColor: 'rgba(200,16,46,0.40)',
+          borderRadius: 3, borderSkipped: 'bottom',
+          stack: 'mergeup'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index' },
+      plugins: {
+        legend: { position: 'top', labels: {
+          font: { family: 'Montserrat', size: 11, weight: '600' },
+          color: '#656969', boxWidth: 10, boxHeight: 10, padding: 14 }},
+        tooltip: {
+          callbacks: {
+            label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw),
+            footer: items => {
+              const muItems = items.filter(i => i.dataset.stack === 'mergeup');
+              if (muItems.length > 1) {
+                const total = muItems.reduce((s, i) => s + i.raw, 0);
+                return 'MergeUp total value: ' + fmt(total);
+              }
+              return '';
+            }
+          },
+          bodyFont:  { family: 'Montserrat', size: 11 },
+          titleFont: { family: 'Montserrat', size: 11, weight: '700' },
+          footerFont: { family: 'Montserrat', size: 11, weight: '700' }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, stacked: true,
+          ticks: { font: { family: 'Montserrat', size: 11, weight: '600' }, color: '#9D9F9F' }},
+        y: { grid: { color: '#f0f0f0' }, stacked: true,
+          ticks: { font: { family: 'Montserrat', size: 10 }, color: '#9D9F9F',
+            callback: v => fmtShort(v) }}
+      }
+    }
+  });
+}
+ 
+// ─── Shared chart options (manual mode) ──────────────────────
+function chartOpts() {
+  return {
+    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index' },
+    plugins: {
+      legend: { position: 'top', labels: {
+        font: { family: 'Montserrat', size: 11, weight: '600' },
+        color: '#656969', boxWidth: 10, boxHeight: 10, padding: 14 }},
+      tooltip: {
+        callbacks: { label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) },
+        bodyFont: { family: 'Montserrat', size: 11 },
+        titleFont: { family: 'Montserrat', size: 11, weight: '700' }}
+    },
+    scales: {
+      x: { grid: { display: false },
+        ticks: { font: { family: 'Montserrat', size: 11, weight: '600' }, color: '#9D9F9F' }},
+      y: { grid: { color: '#f0f0f0' },
+        ticks: { font: { family: 'Montserrat', size: 10 }, color: '#9D9F9F',
+          callback: v => fmtShort(v) }}
+    }
+  };
+}
+ 
+// ─── Init ─────────────────────────────────────────────────────
+recalcManual();
+onCompChange();
+</script>
+</body>
+</html>
