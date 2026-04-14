@@ -39,7 +39,21 @@
   }
   .container { max-width: 760px; margin: 0 auto; }
  
-  /* Banner */
+  /* Hero */
+  .hero { text-align: center; margin-bottom: 28px; }
+  .hero-pill {
+    display: inline-block; background: #fde8eb; border-radius: 99px;
+    padding: 4px 14px; font-size: 11px; font-weight: 700; color: var(--mu-red);
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .hero h1 {
+    font-size: 26px; font-weight: 800; color: #1a1a1a;
+    line-height: 1.2; margin-bottom: 10px;
+  }
+  .hero p {
+    font-size: 14px; color: var(--mu-dark-gray);
+    max-width: 460px; margin: 0 auto; line-height: 1.6;
+  }
  
   /* Mode tabs */
   .mode-tabs {
@@ -213,6 +227,12 @@
 </head>
 <body>
 <div class="container">
+ 
+  <div class="hero">
+    <div class="hero-pill">MergeUp &middot; ROI Calculator</div>
+    <h1>What is your document tool actually costing you?</h1>
+    <p>Adjust the sliders and your numbers flow automatically into the ROI projection.</p>
+  </div>
  
   <div class="mode-tabs">
     <button class="mode-tab active" onclick="setMode('manual')">Manual Process</button>
